@@ -1,0 +1,11 @@
+# Python dependencies
+
+Flask
+pandas
+numpy
+scikit-learn
+statsmodels
+plotly
+openai
+matplotlib
+

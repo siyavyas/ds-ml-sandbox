@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Science Sandbox</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.26.0/plotly.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="bg-animation"></div>
+    
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">📊 Data Science Sandbox</div>
+            <div class="header-actions">
+                <div class="status-indicator status-success">
+                    <div class="status-dot"></div>
+                    Ready to Explore
+                </div>
+                <button class="btn btn-secondary" onclick="exportReport()">📋 Export Report</button>
+                <button class="btn btn-primary" onclick="resetWorkspace()">🔄 New Analysis</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Navigation -->
+    <nav class="main-nav">
+        <div class="nav-tabs">
+            <div class="nav-tab active" data-tab="explorer">
+                <span class="tab-icon">🔍</span>
+                Dataset Explorer
+            </div>
+            <div class="nav-tab" data-tab="visualizations">
+                <span class="tab-icon">📈</span>
+                Visualizations
+            </div>
+            <div class="nav-tab" data-tab="laboratory">
+                <span class="tab-icon">🧪</span>
+                Code Laboratory
+            </div>
+        </div>
+    </nav>
+
+            <!-- Dataset Explorer Tab -->
+        <div class="tab-content active" id="explorer-tab">
+            <!-- Upload Section -->
+            <div class="explorer-container">
+                <div class="upload-section">
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-icon">📁</div>
+                        <h2 class="upload-title">Upload Your Dataset</h2>
+                        <p class="upload-subtitle">Drop CSV, Excel files here or click to browse</p>
+                        <input type="file" class="file-input" id="fileInput" accept=".csv,.xlsx,.xls">
+                        <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                            Choose File
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Dataset Overview (Hidden until data loaded) -->
+                <div id="datasetOverview">
+                    <div class="placeholder-content">
+                        <div class="placeholder-icon">📂</div>
+                        <h3>No Dataset Loaded</h3>
+                        <p>Upload a dataset to see detailed information about your data</p>
+                    </div>
+                </div>
+
+                <!-- Dataset Info (Hidden until data loaded) -->
+                <div id="datasetInfo" style="display: none;">
+                    <!-- Two-column layout below upload -->
+                    <div class="dataset-info-layout">
+                        <!-- Left Column: Dataset Overview -->
+                        <div class="dataset-overview-panel">
+                            <h3 class="panel-title">📊 Dataset Overview</h3>
+                            
+                            <!-- Dataset Preview Section -->
+                            <div id="datasetPreview" style="display: none; margin-bottom: 1.5rem;">
+                                <!-- Dataset preview will be populated here -->
+                            </div>
+                            
+                            <div class="dataset-info-grid">
+                                <div class="info-card">
+                                    <div class="info-value" id="rowCount">--</div>
+                                    <div class="info-label">Rows</div>
+                                </div>
+                                <div class="info-card">
+                                    <div class="info-value" id="columnCount">--</div>
+                                    <div class="info-label">Columns</div>
+                                </div>
+                                <div class="info-card">
+                                    <div class="info-value" id="missingPercent">--</div>
+                                    <div class="info-label">Missing %</div>
+                                </div>
+                                <div class="info-card">
+                                    <div class="info-value" id="dataSize">--</div>
+                                    <div class="info-label">Size (KB)</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Features & Target Selection -->
+                        <div class="features-panel">
+                            <h3 class="panel-title">🎯 Features & Target Selection</h3>
+                            
+                            <div class="control-panel">
+                                <label class="control-label">Select Target Variable</label>
+                                <select id="targetSelect" style="width: 100%; padding: 0.75rem; border-radius: 8px; background: var(--secondary-bg); border: 1px solid var(--glass-border); color: var(--primary-text); margin-bottom: 1.5rem;">
+                                    <option value="">Choose target variable...</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="control-label">📋 Features & Data Types</label>
+                                <div class="feature-list" id="featureList">
+                                    <!-- Features will be populated here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    <!-- Visualizations Tab -->
+    <div class="tab-content" id="visualizations-tab">
+        <div class="viz-lab-container">
+            <!-- Visualization Code Panel -->
+            <div class="viz-code-panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">
+                        <span>💻</span>
+                        Visualization Code
+                    </h2>
+                    <div>
+                        <button class="btn btn-secondary" onclick="copyVizCode()" style="font-size: 0.8rem; padding: 0.5rem 1rem; margin-right: 0.5rem;">📋 Copy</button>
+                        <button class="btn btn-primary" onclick="runVizCode()" style="font-size: 0.8rem; padding: 0.5rem 1rem;">▶ Execute</button>
+                    </div>
+                </div>
+
+                <div class="viz-tabs">
+                    <div class="viz-tab active" data-viz="overview">📊 Overview</div>
+                    <div class="viz-tab" data-viz="correlation">Correlation</div>
+                    <div class="viz-tab" data-viz="distribution">Distribution</div>
+                    <div class="viz-tab" data-viz="scatter">Scatter Plot</div>
+                    <div class="viz-tab" data-viz="missing">Missing Data</div>
+                </div>
+
+                <div class="viz-code-editor" id="vizCodeEditor">
+                    <div class="code-line" data-explanation="Import plotting libraries for data visualization">
+                        <span style="color: #ff79c6;">import</span> <span style="color: #8be9fd;">matplotlib.pyplot</span> <span style="color: #ff79c6;">as</span> <span style="color: #8be9fd;">plt</span>
+                    </div>
+                    <div class="code-line" data-explanation="Import seaborn for statistical visualizations">
+                        <span style="color: #ff79c6;">import</span> <span style="color: #8be9fd;">seaborn</span> <span style="color: #ff79c6;">as</span> <span style="color: #8be9fd;">sns</span>
+                    </div>
+                    <div class="code-line" data-explanation="Import plotly for interactive plots">
+                        <span style="color: #ff79c6;">import</span> <span style="color: #8be9fd;">plotly.express</span> <span style="color: #ff79c6;">as</span> <span style="color: #8be9fd;">px</span>
+                    </div>
+                    <div class="code-line" data-explanation="Import plotly graph objects for advanced plots">
+                        <span style="color: #ff79c6;">import</span> <span style="color: #8be9fd;">plotly.graph_objects</span> <span style="color: #ff79c6;">as</span> <span style="color: #8be9fd;">go</span>
+                    </div>
+                    <br>
+                    <div class="code-line" data-explanation="Set plotting style for better aesthetics">
+                        <span style="color: #6272a4;"># 🎨 Set plotting style</span>
+                    </div>
+                    <div class="code-line" data-explanation="Configure seaborn style for statistical plots">
+                        <span style="color: #8be9fd;">sns</span>.<span style="color: #50fa7b;">set_style</span>(<span style="color: #f1fa8c;">"whitegrid"</span>)
+                    </div>
+                    <div class="code-line" data-explanation="Set figure size for better visibility">
+                        <span style="color: #8be9fd;">plt</span>.<span style="color: #50fa7b;">rcParams</span>[<span style="color: #f1fa8c;">'figure.figsize'</span>] = (<span style="color: #bd93f9;">12</span>, <span style="color: #bd93f9;">8</span>)
+                    </div>
+                    <br>
+                    <div class="code-line" data-explanation="Create your first visualization">
+                        <span style="color: #6272a4;"># 📊 Create visualizations</span>
+                    </div>
+                    <div class="code-line" data-explanation="Generate a scatter plot to explore relationships">
+                        <span style="color: #8be9fd;">fig</span> = <span style="color: #8be9fd;">px</span>.<span style="color: #50fa7b;">scatter</span>(<span style="color: #8be9fd;">df</span>, <span style="color: #8be9fd;">x</span>=<span style="color: #f1fa8c;">'feature1'</span>, <span style="color: #8be9fd;">y</span>=<span style="color: #f1fa8c;">'target'</span>)
+                    </div>
+                    <div class="code-line" data-explanation="Display the interactive plot">
+                        <span style="color: #8be9fd;">fig</span>.<span style="color: #50fa7b;">show</span>()
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Visualization Panel -->
+            <div class="viz-display-panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">
+                        <span>📈</span>
+                        Interactive Visualizations
+                    </h2>
+                    <button class="btn btn-secondary" onclick="toggleFullscreen('viz')">⛶ Fullscreen</button>
+                </div>
+
+                <div class="viz-container">
+                    <div id="plotly-div" class="placeholder-content">
+                        <div class="placeholder-icon">📊</div>
+                        <h3>No Visualizations Yet</h3>
+                        <p>Upload a dataset to see interactive charts and graphs</p>
+                    </div>
+                </div>
+
+                <!-- Quick Stats Below Visualization -->
+                <div id="quickStats" style="display: none; margin-top: 1rem;">
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-value" id="correlationStrength">--</div>
+                            <div class="metric-label">Avg Correlation</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="outlierCount">--</div>
+                            <div class="metric-label">Outliers</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="duplicateCount">--</div>
+                            <div class="metric-label">Duplicates</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Code Laboratory Tab -->
+    <div class="tab-content" id="laboratory-tab">
+        <div class="lab-container">
+            <!-- Model Builder & Code Panel -->
+            <div class="model-builder">
+                <div class="panel-header">
+                    <h2 class="panel-title">
+                        <span>🛠</span>
+                        Model Builder
+                    </h2>
+                    <button class="btn btn-success" onclick="runAnalysis()">🚀 Run Analysis</button>
+                </div>
+
+                <!-- Model Selection -->
+                <div style="margin-bottom: 2rem;">
+                    <label class="control-label">🎯 Choose Your Model</label>
+                    <div class="model-selector">
+                        <div class="model-card selected" data-model="regression">
+                            <div class="model-icon">📈</div>
+                            <div class="model-name">Linear Regression</div>
+                            <div class="model-description">Predict continuous values</div>
+                        </div>
+                        <div class="model-card" data-model="classification">
+                            <div class="model-icon">🎯</div>
+                            <div class="model-name">Classification</div>
+                            <div class="model-description">Predict categories</div>
+                        </div>
+                        <div class="model-card" data-model="clustering">
+                            <div class="model-icon">🔍</div>
+                            <div class="model-name">Clustering</div>
+                            <div class="model-description">Find patterns</div>
+                        </div>
+                        <div class="model-card" data-model="tree">
+                            <div class="model-icon">🌳</div>
+                            <div class="model-name">Decision Tree</div>
+                            <div class="model-description">Interpretable decisions</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preprocessing Options -->
+                <div class="control-panel">
+                    <label class="control-label">⚙️ Preprocessing Options</label>
+                    <div class="control-group">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; color: var(--secondary-text);">
+                            <span class="toggle-switch">
+                                <input type="checkbox" id="normalize">
+                                <span class="slider"></span>
+                            </span>
+                            Normalize Features
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; color: var(--secondary-text);">
+                            <span class="toggle-switch">
+                                <input type="checkbox" id="removeOutliers">
+                                <span class="slider"></span>
+                            </span>
+                            Remove Outliers
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; color: var(--secondary-text);">
+                            <span class="toggle-switch">
+                                <input type="checkbox" id="handleMissing" checked>
+                                <span class="slider"></span>
+                            </span>
+                            Handle Missing Values
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Live Python Code -->
+                <div class="code-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <label class="control-label">💻 Live Python Code</label>
+                        <div>
+                            <button class="btn btn-secondary" onclick="copyCode()" style="font-size: 0.8rem; padding: 0.5rem 1rem; margin-right: 0.5rem;">📋 Copy</button>
+                            <button class="btn btn-primary" onclick="runCode()" style="font-size: 0.8rem; padding: 0.5rem 1rem;">▶ Execute</button>
+                        </div>
+                    </div>
+                    <div class="code-editor" id="codeEditor">
+                        <div class="code-line" data-explanation="Essential data science libraries for analysis">
+                            <span style="color: #ff79c6;">import</span> <span style="color: #8be9fd;">pandas</span> <span style="color: #ff79c6;">as</span> <span style="color: #8be9fd;">pd</span>
+                        </div>
+                        <div class="code-line" data-explanation="NumPy for numerical computations and arrays">
+                            <span style="color: #ff79c6;">import</span> <span style="color: #8be9fd;">numpy</span> <span style="color: #ff79c6;">as</span> <span style="color: #8be9fd;">np</span>
+                        </div>
+                        <div class="code-line" data-explanation="Scikit-learn for machine learning models">
+                            <span style="color: #ff79c6;">from</span> <span style="color: #8be9fd;">sklearn.linear_model</span> <span style="color: #ff79c6;">import</span> <span style="color: #8be9fd;">LinearRegression</span>
+                        </div>
+                        <div class="code-line" data-explanation="Tools for splitting data into training and testing sets">
+                            <span style="color: #ff79c6;">from</span> <span style="color: #8be9fd;">sklearn.model_selection</span> <span style="color: #ff79c6;">import</span> <span style="color: #8be9fd;">train_test_split</span>
+                        </div>
+                        <div class="code-line" data-explanation="Metrics to evaluate model performance">
+                            <span style="color: #ff79c6;">from</span> <span style="color: #8be9fd;">sklearn.metrics</span> <span style="color: #ff79c6;">import</span> <span style="color: #8be9fd;">r2_score, mean_squared_error</span>
+                        </div>
+                        <br>
+                        <div class="code-line" data-explanation="Load your dataset into a pandas DataFrame">
+                            <span style="color: #6272a4;"># 📁 Load your dataset</span>
+                        </div>
+                        <div class="code-line" data-explanation="Read the CSV file into a DataFrame for analysis">
+                            <span style="color: #8be9fd;">df</span> = <span style="color: #8be9fd;">pd</span>.<span style="color: #50fa7b;">read_csv</span>(<span style="color: #f1fa8c;">'your_dataset.csv'</span>)
+                        </div>
+                        <div class="code-line" data-explanation="Display basic information about the dataset structure">
+                            <span style="color: #8be9fd;">df</span>.<span style="color: #50fa7b;">info</span>()
+                        </div>
+                        <br>
+                        <div class="code-line" data-explanation="Prepare your features and target variable">
+                            <span style="color: #6272a4;"># 🎯 Prepare data for modeling</span>
+                        </div>
+                        <div class="code-line" data-explanation="Select all columns except the target as features (X)">
+                            <span style="color: #8be9fd;">X</span> = <span style="color: #8be9fd;">df</span>.<span style="color: #50fa7b;">drop</span>(<span style="color: #f1fa8c;">'target_column'</span>, <span style="color: #8be9fd;">axis</span>=<span style="color: #bd93f9;">1</span>)
+                        </div>
+                        <div class="code-line" data-explanation="Define the target variable (what we want to predict)">
+                            <span style="color: #8be9fd;">y</span> = <span style="color: #8be9fd;">df</span>[<span style="color: #f1fa8c;">'target_column'</span>]
+                        </div>
+                        <br>
+                        <div class="code-line" data-explanation="Split data into training and testing portions">
+                            <span style="color: #6272a4;"># 📊 Split the data (80% train, 20% test)</span>
+                        </div>
+                        <div class="code-line" data-explanation="Create train/test split for model validation">
+                            <span style="color: #8be9fd;">X_train</span>, <span style="color: #8be9fd;">X_test</span>, <span style="color: #8be9fd;">y_train</span>, <span style="color: #8be9fd;">y_test</span> = <span style="color: #50fa7b;">train_test_split</span>(<span style="color: #8be9fd;">X</span>, <span style="color: #8be9fd;">y</span>, <span style="color: #8be9fd;">test_size</span>=<span style="color: #bd93f9;">0.2</span>)
+                        </div>
+                        <br>
+                        <div class="code-line" data-explanation="Create and train your machine learning model">
+                            <span style="color: #6272a4;"># 🤖 Build and train the model</span>
+                        </div>
+                        <div class="code-line" data-explanation="Initialize a linear regression model">
+                            <span style="color: #8be9fd;">model</span> = <span style="color: #50fa7b;">LinearRegression</span>()
+                        </div>
+                        <div class="code-line" data-explanation="Train the model on the training data">
+                            <span style="color: #8be9fd;">model</span>.<span style="color: #50fa7b;">fit</span>(<span style="color: #8be9fd;">X_train</span>, <span style="color: #8be9fd;">y_train</span>)
+                        </div>
+                        <br>
+                        <div class="code-line" data-explanation="Make predictions and evaluate performance">
+                            <span style="color: #6272a4;"># 📈 Make predictions and evaluate</span>
+                        </div>
+                        <div class="code-line" data-explanation="Use the trained model to make predictions on test data">
+                            <span style="color: #8be9fd;">y_pred</span> = <span style="color: #8be9fd;">model</span>.<span style="color: #50fa7b;">predict</span>(<span style="color: #8be9fd;">X_test</span>)
+                        </div>
+                        <div class="code-line" data-explanation="Calculate R² score to measure model accuracy">
+                            <span style="color: #8be9fd;">r2</span> = <span style="color: #50fa7b;">r2_score</span>(<span style="color: #8be9fd;">y_test</span>, <span style="color: #8be9fd;">y_pred</span>)
+                        </div>
+                        <div class="code-line" data-explanation="Calculate Root Mean Square Error for model evaluation">
+                            <span style="color: #8be9fd;">rmse</span> = <span style="color: #50fa7b;">np</span>.<span style="color: #50fa7b;">sqrt</span>(<span style="color: #50fa7b;">mean_squared_error</span>(<span style="color: #8be9fd;">y_test</span>, <span style="color: #8be9fd;">y_pred</span>))
+                        </div>
+                        <br>
+                        <div class="code-line" data-explanation="Display the results of your analysis">
+                            <span style="color: #6272a4;"># 📋 Display results</span>
+                        </div>
+                        <div class="code-line" data-explanation="Print the R² score to see model performance">
+                            <span style="color: #50fa7b;">print</span>(<span style="color: #f1fa8c;">f"R² Score: {r2:.3f}"</span>)
+                        </div>
+                        <div class="code-line" data-explanation="Print RMSE to understand prediction errors">
+                            <span style="color: #50fa7b;">print</span>(<span style="color: #f1fa8c;">f"RMSE: {rmse:.3f}"</span>)
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Tutor & Output Panel -->
+            <div class="tutor-output-section">
+                <div class="panel-header">
+                    <h2 class="panel-title">
+                        <span>🤖</span>
+                        AI Assistant & Results
+                    </h2>
+                    <div class="section-tabs">
+                        <div class="section-tab active" data-section="tutor">🤖 AI Tutor</div>
+                        <div class="section-tab" data-section="output">📊 Output</div>
+                    </div>
+                </div>
+
+                <!-- AI Tutor Section -->
+                <div class="section-content active" id="tutor-section">
+                    <div class="ai-chat">
+                        <div class="chat-header">
+                            <div class="ai-avatar">🤖</div>
+                            <div>
+                                <h3 style="margin: 0; color: var(--primary-text);">AI Data Science Tutor</h3>
+                                <div class="status-indicator status-processing">
+                                    <div class="status-dot"></div>
+                                    Ready to help you learn
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="chat-messages" id="chatMessages">
+                            <div class="chat-message">
+                                <strong>🤖 AI Tutor:</strong> Welcome to the Code Laboratory! I'm here to help you understand every step of your data science journey. 
+                                <br><br>
+                                Here's what I can help you with:
+                                <br>• Explain any line of code (just hover over it!)
+                                <br>• Suggest improvements for your model
+                                <br>• Help interpret your results
+                                <br>• Recommend next steps for your analysis
+                                <br><br>
+                                Upload a dataset and select a model to get started, then ask me anything!
+                            </div>
+                        </div>
+
+                        <div class="chat-input-container">
+                            <textarea 
+                                class="chat-input" 
+                                id="chatInput" 
+                                placeholder="Ask me about the code, model performance, or data science concepts..."
+                            ></textarea>
+                            <button class="btn btn-primary" onclick="sendMessage()">
+                                Send 🚀
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Output Section -->
+                <div class="section-content" id="output-section">
+                    <div class="output-display">
+                        <div class="output-section">
+                            <h3 class="output-title">
+                                <span>📊</span>
+                                Model Performance Metrics
+                            </h3>
+                            <div class="metrics-grid">
+                                <div class="metric-card">
+                                    <div class="metric-value" id="r2Value">--</div>
+                                    <div class="metric-label">R² Score</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value" id="rmseValue">--</div>
+                                    <div class="metric-label">RMSE</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value" id="accuracyValue">--</div>
+                                    <div class="metric-label">Accuracy</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value" id="crossValScore">--</div>
+                                    <div class="metric-label">CV Score</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="output-section">
+                            <h3 class="output-title">
+                                <span>📈</span>
+                                Model Predictions Preview
+                            </h3>
+                            <div id="predictionChart" class="placeholder-content" style="height: 300px; background: var(--glass-bg); border-radius: 8px;">
+                                <div class="placeholder-icon">📈</div>
+                                <p>Prediction results will appear here after running the model</p>
+                            </div>
+                        </div>
+
+                        <div class="output-section">
+                            <h3 class="output-title">
+                                <span>🔍</span>
+                                Feature Importance
+                            </h3>
+                            <div id="featureImportance" style="background: var(--glass-bg); border-radius: 8px; padding: 1rem; min-height: 200px;">
+                                <div class="placeholder-content">
+                                    <div class="placeholder-icon">🔍</div>
+                                    <p>Feature importance analysis will show here</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="output-section">
+                            <h3 class="output-title">
+                                <span>📝</span>
+                                Generated Insights
+                            </h3>
+                            <div id="insights" style="background: var(--glass-bg); border-radius: 8px; padding: 1.5rem; min-height: 150px;">
+                                <div class="placeholder-content">
+                                    <div class="placeholder-icon">💡</div>
+                                    <p>AI-generated insights about your model and data will appear here</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interactive Tooltip -->
+    <div class="interactive-hint" id="tooltip"></div>
+
+    <!-- Toast Notifications -->
+    <div class="toast" id="toast"></div>
+
+<script src="{{ url_for('static', filename='js/interactive.js') }}"></script>
+</body>
+</html>
+
